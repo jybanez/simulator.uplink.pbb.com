@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Project Bantay Bayan · Uplink Monitor</title>
+
+  <!-- Local Leaflet stack (offline-friendly) -->
+  <link rel="stylesheet" href="./css/leaflet.css">
+  <link rel="stylesheet" href="./css/leaflet.awesome-markers.css">
+  <link rel="stylesheet" href="./css/all.min.css">
+
+  <script src="./js/leaflet.js"></script>
+  <script src="./js/leaflet.awesome-markers.js"></script>
+  <script src="./js/leaflet-ant-path.min.js"></script>
+  <script src="./js/papaparse.min.js"></script>
+
+  <style>
+    :root {
+      --header-h: 64px;
+      --sidebar-w: 340px;
+      --bg: #0b1220;
+      --panel: rgba(255,255,255,0.94);
+      --panel2: rgba(255,255,255,0.9);
+      --text: #0f172a;
+      --muted: #475569;
+      --border: rgba(15, 23, 42, 0.12);
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+    }
+
+    /* Fixed header */
+    .header {
+      position: fixed;
+      inset: 0 0 auto 0;
+      height: var(--header-h);
+      background: #0b1220;
+      color: #fff;
+      z-index: 1200;
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      box-sizing: border-box;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      line-height: 1.1;
+    }
+    .header-left .title {
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+    .header-left .subtitle {
+      font-weight: 600;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    /* Layout below header */
+    .app {
+      position: absolute;
+      top: var(--header-h);
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      min-height: 0;
+    }
+
+    /* Fixed left panel */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      overflow: auto;
+      padding: 12px 12px 14px;
+      box-sizing: border-box;
+      z-index: 1100;
+    }
+
+    .sidebar .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+      position: sticky;
+      top: 0;
+      background: var(--panel);
+      padding: 6px 0 8px;
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+    .btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .btn:hover { background: #f8fafc; }
+    .btn:active { transform: translateY(1px); }
+
+    .tree {
+      list-style: none;
+      padding-left: 0;
+      margin: 10px 0 0;
+    }
+    .tree ul {
+      list-style: none;
+      padding-left: 18px;
+      margin: 6px 0 8px;
+      border-left: 1px dashed rgba(15, 23, 42, 0.15);
+    }
+
+    .node {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 2px;
+    }
+    .node input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+    .node .label {
+      border: 0;
+      background: transparent;
+      padding: 2px 4px;
+      margin: 0;
+      cursor: pointer;
+      text-align: left;
+      color: var(--text);
+      font-size: 13px;
+      border-radius: 8px;
+    }
+    .node .label:hover {
+      background: rgba(2, 132, 199, 0.08);
+    }
+    .node .meta {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    /* Map area */
+    .main {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+    }
+    #map {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* Status + Legend overlays */
+    .status {
+      position:absolute;
+      left: 12px;
+      top: 12px;
+      z-index: 1000;
+      background: rgba(0,0,0,0.65);
+      color:#fff;
+      padding:8px 10px;
+      border-radius:12px;
+      font-size:12px;
+      max-width: 560px;
+      line-height:1.35;
+    }
+    .status.ok { background: rgba(0,110,60,0.75); }
+    .status.err { background: rgba(150,0,0,0.75); }
+
+    .legend {
+      position: absolute;
+      z-index: 1000;
+      right: 12px;
+      top: 12px;
+      background: var(--panel2);
+      padding: 10px 12px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      font-size: 12px;
+      max-width: 320px;
+      border: 1px solid var(--border);
+    }
+    .legend .row {
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin:6px 0;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display:inline-block;
+    }
+    .dot.blue { background:#2A81CB; }
+    .dot.green { background:#2AAD27; }
+    .dot.red { background:#CB2B3E; }
+    .dot.gray { background:#6b7280; }
+
+    /* Disabled Leaflet default marker (CSS filter) */
+    .marker-disabled {
+      filter: grayscale(1) brightness(0.75);
+      opacity: 0.85;
+    }
+    .leaflet-container {
+      background: #0b1220;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <div class="title">Project Bantay Bayan</div>
+      <div class="subtitle">Uplink Monitor</div>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="controls">
+        <button class="btn" id="btnCheckAll" type="button">Check all</button>
+        <button class="btn" id="btnUncheckAll" type="button">Uncheck all</button>
+      </div>
+      <ul class="tree" id="tree"></ul>
+    </aside>
+
+    <main class="main">
+      <div id="map"></div>
+      <div class="status" id="status">Loading CSV files…</div>
+
+      <div class="legend">
+        <div><strong>Markers</strong></div>
+        <div class="row"><span class="dot blue"></span><span>Barangay Hall</span></div>
+        <div class="row"><span class="dot green"></span><span>City / Municipality</span></div>
+        <div class="row"><span class="dot red"></span><span>Province</span></div>
+        <div class="row"><span class="dot gray"></span><span>Disabled</span></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="./js/main.js"></script>
+</body>
+</html>
