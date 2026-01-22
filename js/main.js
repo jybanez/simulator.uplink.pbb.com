@@ -298,10 +298,11 @@
 
       const line = L.polyline.antPath([[b.lat, b.lon], [c.lat, c.lon]], {
         color: "#2A81CB",
-        delay: 900,
+        delay: 1000,
         dashArray: [10, 18],
         weight: 2,
-        opacity: 0.75
+        opacity: 0.75,
+        renderer: L.svg({ pane: "overlayPane" })
       });
       line.addTo(layerLinks);
       linkBrgyToCity.set(b.brgy_id, line);
@@ -316,10 +317,11 @@
 
       const line = L.polyline.antPath([[c.lat, c.lon], [p.lat, p.lon]], {
         color: "#CB2B3E",
-        delay: 1100,
+        delay: 1000,
         dashArray: [12, 22],
         weight: 3,
-        opacity: 0.75
+        opacity: 0.75,
+        renderer: L.svg({ pane: "overlayPane" })
       });
       line.addTo(layerLinks);
       linkCityToProv.set(c.city_id, line);
